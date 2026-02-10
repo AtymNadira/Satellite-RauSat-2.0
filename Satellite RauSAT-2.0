@@ -1,0 +1,77 @@
+#include <Wire.h>
+#include <BH1750.h>
+#include <Adafruit_BMP085.h>
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+/***********************/
+#include <Arduino.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+/**************/
+Adafruit_MPU6050 mpu;
+/**************************************************/
+RF24 radio(9, 10);
+Adafruit_BMP085 bmp;
+BH1750 lightMeter;
+TinyGPSPlus gps;
+#define S_RX    3                // Вывод RX
+#define S_TX    2                // Вывод TX
+SoftwareSerial SoftSerial(S_RX, S_TX);
+float data1[7];
+/****************************************************/
+/***********************************************/
+void setup(){
+    Serial.begin(115200);
+    SoftSerial.begin(9600);
+    Wire.begin(); 
+    lightMeter.begin();
+    if (!mpu.begin(0x68)) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }}
+    bool status = bmp.begin(0x77);  
+  if (!status) {
+    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
+    while (1);
+  }
+  radio.begin(); 
+    radio.setChannel(0);// задаем канал для передачи данных (от 0 до 127)
+    radio.setDataRate (RF24_1MBPS);  
+ radio.setPALevel (RF24_PA_HIGH); 
+    radio.openWritingPipe (0x0987654321DD);
+ /* mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
+  mpu.setMotionDetectionThreshold(1);
+  mpu.setMotionDetectionDuration(20);
+  mpu.setInterruptPinLatch(true);  // Keep it latched.  Will turn off when reinitialized.
+  mpu.setInterruptPinPolarity(true);
+  mpu.setMotionInterrupt(true);*/
+}
+void loop(){
+  data1[0] = bmp.readTemperature();
+  data1[1] = bmp.readAltitude();
+  data1[2] = bmp.readPressure();
+  data1[3] = lightMeter.readLightLevel();
+  while (SoftSerial.available() > 0) {
+    if (gps.encode(SoftSerial.read())) {
+      if (gps.location.isValid()) {
+        data1[4] =gps.location.lat(), 6;
+        data1[5] = gps.location.lng(), 6 ;
+        data1[4]=data1[4]*10000;
+        data1[5]=data1[5]*10000;
+      }
+      if (gps.speed.isValid()) {
+        data1[6]=gps.speed.kmph();
+      }
+    radio.write(&data1, sizeof(data1));
+    /* Get new sensor events with the readings */
+   /* sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
+ data2[0]=a.acceleration.x;
+    data2[1]=a.acceleration.y;
+    data2[2]=a.acceleration.z;
+    data2[3]=g.gyro.x;
+    data2[4]=g.gyro.y;
+    data2[5]=g.gyro.z;
