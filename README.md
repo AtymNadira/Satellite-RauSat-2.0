@@ -91,7 +91,9 @@ RauSAT-2.0/
 ## Documentation
 
 A detailed description of the system architecture, hardware selection, schematics,
-3D models, experiments, and results is available in the GitHub documentation: `docs/Documentation_RauSAT_2.0` directory.
+3D models, experiments, and results is available in the GitHub documentation:
+
+Documentation_RauSat 2.0.pdf
 
 A 3-minute overview video explaining the satellite's mission and development process:
 https://www.youtube.com/watch?v=wAqawTeeiBA
