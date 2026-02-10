@@ -1,0 +1,107 @@
+#ifdef ESP32
+  #include <WiFi.h>
+  #include <ESPAsyncWebServer.h>
+  #include <SPIFFS.h>
+#else
+  #include <Arduino.h>
+  #include <WiFiClientSecure.h>
+  #include <UniversalTelegramBot.h>
+  #include <ESP8266WiFi.h>
+  #include <ArduinoJson.h>
+  #include <Hash.h>
+  #include <ESPAsyncTCP.h>
+  #include <ESPAsyncWebServer.h>
+  #include <FS.h>
+  #include <SPI.h>
+  #include <nRF24L01.h>
+  #include <RF24.h>
+  #include <SoftwareSerial.h>
+#endif
+#include <Wire.h>
+RF24 radio(4, 5);//CE, CSN
+float data1[7];
+float Temp1=0,Press1=0,Alt1=0,Hum1,lat1=0,lng1=0,speed1=0;
+float t;
+uint8_t  pipe; 
+// Replace with your network credentials
+const char* ssid = "WiFi_Users";
+const char* password = "ILoveNIS";
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+String Tempr2() {
+    return String(Temp1);
+}
+String Humm2() {
+    return String(Hum1);
+}
+String Presss2() {
+    return String(Press1);
+}
+String alt2() {
+    return String(Alt1);
+}
+String lat12() {
+    return String(lat1);
+}
+String lng12() {
+    return String(lng1);
+}
+String speed12() {
+    return String(speed1);
+}
+String bat12() {
+    return String(t);
+}
+void setup(){
+  pinMode(D5, OUTPUT);
+  // Serial port for debugging purposes
+  Serial.begin(115200);
+  Serial.setTimeout(50);
+  bool status; 
+  // Initialize SPIFFS
+  if(!SPIFFS.begin()){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+  // Print ESP32 Local IP Address
+  Serial.println(WiFi.localIP());
+  radio.begin();
+  radio.setChannel(0); 
+  radio.setDataRate (RF24_1MBPS);
+  radio.setPALevel (RF24_PA_HIGH);
+  radio.openReadingPipe(1,0x0987654321DD); 
+  radio.startListening();
+  // Route for root / web page
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html");
+  });
+   server.on("/temperature1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", Tempr2().c_str());
+  });
+  server.on("/humidity1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", Humm2().c_str());
+  });
+  server.on("/pressure1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", Presss2().c_str());
+  });
+  server.on("/alt1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", alt2().c_str());
+  });
+  server.on("/lat1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", lat12().c_str());
+  });
+  server.on("/lng1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", lng12().c_str());
+  });
+  server.on("/speed1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", speed12().c_str());
+  });
+   server.on("/t", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", bat12().c_str());
+  });
